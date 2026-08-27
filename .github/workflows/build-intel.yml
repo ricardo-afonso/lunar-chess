@@ -28,7 +28,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build Lunar Chess
-        run: cargo build --release --locked
+        run: cargo build --release
 
       - name: Verify and package Intel binary
         run: |
