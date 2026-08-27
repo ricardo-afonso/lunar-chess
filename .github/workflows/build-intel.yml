@@ -26,7 +26,26 @@ jobs:
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
+      
+      - name: Patch macOS transparency
+        run: |
+          SOFTBUFFER_MANIFEST="$(
+            cargo metadata --format-version 1 |
+            jq -r '.packages[] | select(.name == "softbuffer") | .manifest_path'
+          )"
 
+          SOFTBUFFER_CG="$(
+            dirname "$SOFTBUFFER_MANIFEST"
+          )/src/backends/cg.rs"
+
+          grep -q "kCGImageAlphaNoneSkipFirst" "$SOFTBUFFER_CG"
+
+          sed -i '' \
+            's/kCGImageAlphaNoneSkipFirst/kCGImageAlphaPremultipliedFirst/g' \
+            "$SOFTBUFFER_CG"
+
+          grep -q "kCGImageAlphaPremultipliedFirst" "$SOFTBUFFER_CG"
+          
       - name: Build Lunar Chess
         run: cargo build --release
 
