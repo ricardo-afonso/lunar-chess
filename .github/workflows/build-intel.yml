@@ -1,0 +1,42 @@
+name: Build Intel macOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Lunar Chess
+        run: cargo build --release --locked
+
+      - name: Verify and package Intel binary
+        run: |
+          file target/release/lunar-chess
+          test "$(lipo -archs target/release/lunar-chess)" = "x86_64"
+          codesign --force --sign - target/release/lunar-chess
+          tar -czf lunar-chess-intel-macos.tar.gz \
+            -C target/release lunar-chess
+
+      - name: Upload Intel build
+        uses: actions/upload-artifact@v5
+        with:
+          name: lunar-chess-intel-macos
+          path: lunar-chess-intel-macos.tar.gz
+          retention-days: 7
