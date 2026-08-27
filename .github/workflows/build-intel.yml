@@ -17,7 +17,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v6
         with:
+          repository: namecallfilter/lunar-chess
           ref: v0.3.6
+          persist-credentials: false
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
