@@ -1,4 +1,4 @@
-name: Build Intel macOS
+name: Build Intel macOS with transparency
 
 on:
   workflow_dispatch:
@@ -24,9 +24,6 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-      
       - name: Patch macOS transparency
         run: |
           SOFTBUFFER_MANIFEST="$(
@@ -44,8 +41,16 @@ jobs:
             's/kCGImageAlphaNoneSkipFirst/kCGImageAlphaPremultipliedFirst/g' \
             "$SOFTBUFFER_CG"
 
+          perl -0pi -e \
+            's/let layer = CALayer::new\(\);/let layer = CALayer::new();\n        root_layer.setOpaque(false);\n        layer.setOpaque(false);/' \
+            "$SOFTBUFFER_CG"
+
           grep -q "kCGImageAlphaPremultipliedFirst" "$SOFTBUFFER_CG"
-          
+          grep -q "root_layer.setOpaque(false)" "$SOFTBUFFER_CG"
+
+          touch "$SOFTBUFFER_CG"
+          cargo clean -p softbuffer
+
       - name: Build Lunar Chess
         run: cargo build --release
 
@@ -54,12 +59,12 @@ jobs:
           file target/release/lunar-chess
           test "$(lipo -archs target/release/lunar-chess)" = "x86_64"
           codesign --force --sign - target/release/lunar-chess
-          tar -czf lunar-chess-intel-macos.tar.gz \
+          tar -czf lunar-chess-intel-transparent.tar.gz \
             -C target/release lunar-chess
 
-      - name: Upload Intel build
+      - name: Upload patched build
         uses: actions/upload-artifact@v5
         with:
-          name: lunar-chess-intel-macos
-          path: lunar-chess-intel-macos.tar.gz
+          name: lunar-chess-intel-transparent-${{ github.run_number }}
+          path: lunar-chess-intel-transparent.tar.gz
           retention-days: 7
